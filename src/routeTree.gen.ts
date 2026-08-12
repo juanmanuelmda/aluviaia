@@ -12,10 +12,12 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedCalendarioRouteImport } from './routes/_authenticated/calendario'
 import { Route as AuthenticatedHuespedesRouteImport } from './routes/_authenticated/huespedes'
 import { Route as AuthenticatedPanelRouteImport } from './routes/_authenticated/panel'
 import { Route as AuthenticatedPropiedadesIndexRouteImport } from './routes/_authenticated/propiedades.index'
 import { Route as AuthenticatedPropiedadesIdRouteImport } from './routes/_authenticated/propiedades.$id'
+import { Route as AuthenticatedReservasIndexRouteImport } from './routes/_authenticated/reservas.index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -30,6 +32,11 @@ const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedCalendarioRoute = AuthenticatedCalendarioRouteImport.update({
+  id: '/calendario',
+  path: '/calendario',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedHuespedesRoute = AuthenticatedHuespedesRouteImport.update({
   id: '/huespedes',
@@ -53,59 +60,77 @@ const AuthenticatedPropiedadesIdRoute =
     path: '/propiedades/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedReservasIndexRoute =
+  AuthenticatedReservasIndexRouteImport.update({
+    id: '/reservas/',
+    path: '/reservas/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/calendario': typeof AuthenticatedCalendarioRoute
   '/huespedes': typeof AuthenticatedHuespedesRoute
   '/panel': typeof AuthenticatedPanelRoute
   '/propiedades/$id': typeof AuthenticatedPropiedadesIdRoute
   '/propiedades/': typeof AuthenticatedPropiedadesIndexRoute
+  '/reservas/': typeof AuthenticatedReservasIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/calendario': typeof AuthenticatedCalendarioRoute
   '/huespedes': typeof AuthenticatedHuespedesRoute
   '/panel': typeof AuthenticatedPanelRoute
   '/propiedades/$id': typeof AuthenticatedPropiedadesIdRoute
   '/propiedades': typeof AuthenticatedPropiedadesIndexRoute
+  '/reservas': typeof AuthenticatedReservasIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/calendario': typeof AuthenticatedCalendarioRoute
   '/_authenticated/huespedes': typeof AuthenticatedHuespedesRoute
   '/_authenticated/panel': typeof AuthenticatedPanelRoute
   '/_authenticated/propiedades/$id': typeof AuthenticatedPropiedadesIdRoute
   '/_authenticated/propiedades/': typeof AuthenticatedPropiedadesIndexRoute
+  '/_authenticated/reservas/': typeof AuthenticatedReservasIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/auth'
+    | '/calendario'
     | '/huespedes'
     | '/panel'
     | '/propiedades/$id'
     | '/propiedades/'
+    | '/reservas/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
+    | '/calendario'
     | '/huespedes'
     | '/panel'
     | '/propiedades/$id'
     | '/propiedades'
+    | '/reservas'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/calendario'
     | '/_authenticated/huespedes'
     | '/_authenticated/panel'
     | '/_authenticated/propiedades/$id'
     | '/_authenticated/propiedades/'
+    | '/_authenticated/reservas/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -137,6 +162,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/calendario': {
+      id: '/_authenticated/calendario'
+      path: '/calendario'
+      fullPath: '/calendario'
+      preLoaderRoute: typeof AuthenticatedCalendarioRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/huespedes': {
       id: '/_authenticated/huespedes'
       path: '/huespedes'
@@ -165,21 +197,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPropiedadesIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/reservas/': {
+      id: '/_authenticated/reservas/'
+      path: '/reservas'
+      fullPath: '/reservas/'
+      preLoaderRoute: typeof AuthenticatedReservasIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedCalendarioRoute: typeof AuthenticatedCalendarioRoute
   AuthenticatedHuespedesRoute: typeof AuthenticatedHuespedesRoute
   AuthenticatedPanelRoute: typeof AuthenticatedPanelRoute
   AuthenticatedPropiedadesIdRoute: typeof AuthenticatedPropiedadesIdRoute
   AuthenticatedPropiedadesIndexRoute: typeof AuthenticatedPropiedadesIndexRoute
+  AuthenticatedReservasIndexRoute: typeof AuthenticatedReservasIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedCalendarioRoute: AuthenticatedCalendarioRoute,
   AuthenticatedHuespedesRoute: AuthenticatedHuespedesRoute,
   AuthenticatedPanelRoute: AuthenticatedPanelRoute,
   AuthenticatedPropiedadesIdRoute: AuthenticatedPropiedadesIdRoute,
   AuthenticatedPropiedadesIndexRoute: AuthenticatedPropiedadesIndexRoute,
+  AuthenticatedReservasIndexRoute: AuthenticatedReservasIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

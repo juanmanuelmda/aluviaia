@@ -80,7 +80,10 @@ function CalendarPage() {
     e.preventDefault();
     if (!selectedDay) return;
     const end = blockEnd || toISODate(addDays(new Date(`${selectedDay}T12:00:00`), 1));
-    if (end <= selectedDay) return toast.error("La fecha de fin debe ser posterior");
+    if (end <= selectedDay) {
+      toast.error("La fecha de fin debe ser posterior");
+      return;
+    }
     try {
       await saveBlock.mutateAsync({
         values: { property_id: activeProperty, start_date: selectedDay, end_date: end, reason: "personal", notes: "" },

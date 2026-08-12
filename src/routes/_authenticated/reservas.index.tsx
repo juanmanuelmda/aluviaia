@@ -73,8 +73,14 @@ export function ReservationForm({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.property_id) return toast.error("Elegí una propiedad");
-    if (!form.check_out || form.check_out <= form.check_in) return toast.error("El check-out debe ser posterior al check-in");
+    if (!form.property_id) {
+      toast.error("Elegí una propiedad");
+      return;
+    }
+    if (!form.check_out || form.check_out <= form.check_in) {
+      toast.error("El check-out debe ser posterior al check-in");
+      return;
+    }
     try {
       await save.mutateAsync({
         id: reservation?.id,
@@ -179,14 +185,17 @@ function PaymentsDialog({ reservation, onClose }: { reservation: Reservation; on
   const { data: payments = [] } = usePayments();
   const savePayment = useSave("payments", ["payments"]);
   const list = payments.filter((p) => p.reservation_id === reservation.id);
-  const balance = balanceFor(reservation, payments);
+  const balance = balanceFor(reservation, payments).pending;
   const [amount, setAmount] = useState(balance > 0 ? String(balance) : "");
   const [method, setMethod] = useState("transferencia");
   const [paidAt, setPaidAt] = useState(toISODate(new Date()));
 
   async function add(e: React.FormEvent) {
     e.preventDefault();
-    if (!Number(amount)) return toast.error("Ingresá un importe");
+    if (!Number(amount)) {
+      toast.error("Ingresá un importe");
+      return;
+    }
     await savePayment.mutateAsync({
       values: { reservation_id: reservation.id, amount: Number(amount), method, paid_at: paidAt, notes: "" },
     });
@@ -337,7 +346,7 @@ function ReservationsPage() {
           ) : (
             <ul className="divide-y">
               {filtered.map((r) => {
-                const balance = balanceFor(r, payments);
+                const balance = balanceFor(r, payments).pending;
                 return (
                   <li key={r.id} className="py-3">
                     <div className="flex items-start justify-between gap-3">
