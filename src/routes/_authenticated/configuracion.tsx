@@ -26,15 +26,14 @@ function SettingsPage() {
   const { user } = useAuth();
   const { data: profile } = useProfile();
   const save = useSave("profiles", ["profile"]);
-  const [form, setForm] = useState({ full_name: "", business_name: "", phone: "" });
+  const [form, setForm] = useState({ first_name: "", last_name: "" });
   const [ready, setReady] = useState(false);
 
   if (profile && !ready) {
     setReady(true);
     setForm({
-      full_name: profile.full_name ?? "",
-      business_name: profile.business_name ?? "",
-      phone: profile.phone ?? "",
+      first_name: profile.first_name ?? "",
+      last_name: profile.last_name ?? "",
     });
   }
 
@@ -52,14 +51,11 @@ function SettingsPage() {
             <Field label="Email">
               <Input value={user?.email ?? ""} disabled className="h-11" />
             </Field>
-            <Field label="Nombre y apellido">
-              <Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} className="h-11" />
+            <Field label="Nombre">
+              <Input value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} className="h-11" />
             </Field>
-            <Field label="Nombre del negocio">
-              <Input value={form.business_name} onChange={(e) => setForm({ ...form, business_name: e.target.value })} className="h-11" />
-            </Field>
-            <Field label="Teléfono">
-              <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="h-11" />
+            <Field label="Apellido">
+              <Input value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} className="h-11" />
             </Field>
             <Button type="submit" className="h-12 w-full" disabled={save.isPending}>
               Guardar cambios
