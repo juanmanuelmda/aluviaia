@@ -92,7 +92,7 @@ function FinancePage() {
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard label="Ingresos del mes" value={money(income)} tone="success" />
-          <StatCard label="Gastos del mes" value={money(outcome)} tone="danger" />
+          <StatCard label="Gastos del mes" value={money(outcome)} tone="warning" />
           <StatCard label="Resultado neto" value={money(income - outcome)} />
           <StatCard label="Por cobrar" value={money(pending)} tone="warning" hint="Saldo de todas las reservas" />
         </div>

@@ -183,7 +183,7 @@ function OpportunitiesPage() {
     reservations,
     payments,
     guests,
-    dismissed: dismissals.map((d) => d.opportunity_key),
+    dismissed: dismissals as unknown as string[],
   });
 
   return (
