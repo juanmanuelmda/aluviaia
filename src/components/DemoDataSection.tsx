@@ -31,7 +31,7 @@ export function DemoDataSection() {
     setConfirm(null);
     try {
       if (kind === "load") {
-        const res = await load.mutateAsync();
+        const res = (await load.mutateAsync()) as { alreadyLoaded?: boolean };
         toast.success(res.alreadyLoaded ? "Los datos demo ya están cargados." : "Datos demo cargados");
       } else if (kind === "remove") {
         await remove.mutateAsync();
