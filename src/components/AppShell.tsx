@@ -164,6 +164,11 @@ export function AppShell({
             <Menu className="size-5" />
           </button>
           <h1 className="flex-1 truncate text-lg font-bold">{title}</h1>
+          {demoMode && (
+            <span className="border-border text-muted-foreground hidden rounded-full border px-2.5 py-1 text-[10px] font-semibold tracking-wide sm:inline">
+              MODO DEMO
+            </span>
+          )}
           {action}
         </header>
         <main className="mx-auto w-full max-w-6xl px-4 pt-5 pb-28 lg:pb-10">{children}</main>
