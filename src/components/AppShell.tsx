@@ -19,6 +19,7 @@ import {
 import { Logo } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useDemoMode } from "@/lib/demo";
 
 const NAV = [
   { to: "/panel", label: "Panel", icon: LayoutDashboard },
@@ -53,6 +54,7 @@ export function AppShell({
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const demoMode = useDemoMode();
 
   // Cierre garantizado del menú ante cualquier cambio de ruta.
   useEffect(() => {
