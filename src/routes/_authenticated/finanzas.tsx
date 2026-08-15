@@ -34,7 +34,13 @@ function FinancePage() {
   const { data: reservations = [] } = useReservations();
   const saveExpense = useSave("expenses", ["expenses"]);
   const [open, setOpen] = useState(false);
+  const [range, setRange] = useState<"mes" | "anio" | "custom">("mes");
   const [month, setMonth] = useState(() => toISODate(new Date()).slice(0, 7));
+  const [year, setYear] = useState(() => String(new Date().getFullYear()));
+  const [custom, setCustom] = useState(() => ({
+    from: `${toISODate(new Date()).slice(0, 4)}-01-01`,
+    to: toISODate(new Date()),
+  }));
   const [form, setForm] = useState({
     amount: "",
     category: "general",
@@ -43,11 +49,24 @@ function FinancePage() {
     spent_at: toISODate(new Date()),
   });
 
-  const monthPayments = payments.filter((p) => p.paid_at.startsWith(month));
-  const monthExpenses = expenses.filter((e) => e.spent_at.startsWith(month));
+  const period = useMemo(() => {
+    if (range === "mes") {
+      const [y, m] = month.split("-").map(Number);
+      const last = new Date(y!, m!, 0).getDate();
+      return { from: `${month}-01`, to: `${month}-${String(last).padStart(2, "0")}`, label: `Mes ${month}` };
+    }
+    if (range === "anio") return { from: `${year}-01-01`, to: `${year}-12-31`, label: `Año ${year}` };
+    return { from: custom.from, to: custom.to, label: "Período personalizado" };
+  }, [range, month, year, custom]);
+
+  const inRange = (d: string) => d >= period.from && d <= period.to;
+
+  const monthPayments = payments.filter((p) => inRange(p.paid_at));
+  const monthExpenses = expenses.filter((e) => inRange(e.spent_at));
   const income = monthPayments.reduce((s, p) => s + Number(p.amount), 0);
   const outcome = monthExpenses.reduce((s, e) => s + Number(e.amount), 0);
   const pending = reservations.reduce((s, r) => s + Math.max(0, balanceFor(r, payments).pending), 0);
+
 
   const byProperty = useMemo(() => {
     return properties.map((prop) => {
