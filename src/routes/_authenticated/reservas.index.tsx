@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  useBlocks,
   useGuests,
   usePayments,
   useProperties,
@@ -17,7 +18,8 @@ import {
   useSave,
   type Reservation,
 } from "@/lib/data";
-import { balanceFor, paidFor } from "@/lib/business";
+import { ACTIVE_STATUSES, balanceFor, findConflict, paidFor } from "@/lib/business";
+
 import { fmtDate, money, nights, STATUS_LABEL, toISODate } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/reservas/")({
@@ -50,8 +52,13 @@ export function ReservationForm({
 }) {
   const { data: properties = [] } = useProperties();
   const { data: guests = [] } = useGuests();
+  const { data: reservations = [] } = useReservations();
+  const { data: blocks = [] } = useBlocks();
+  const { data: payments = [] } = usePayments();
   const save = useSave("reservations", ["reservations"]);
+  const savePayment = useSave("payments", ["payments", "reservations"]);
   const [guestOpen, setGuestOpen] = useState(false);
+  const [deposit, setDeposit] = useState("");
   const [form, setForm] = useState(() => ({
     property_id: reservation?.property_id ?? preset?.property_id ?? properties[0]?.id ?? "",
     guest_id: reservation?.guest_id ?? "",
@@ -71,6 +78,47 @@ export function ReservationForm({
     return Math.max(0, nights(form.check_in, form.check_out)) * prop.base_price;
   }, [properties, form.property_id, form.check_in, form.check_out]);
 
+  const blocking = form.status === "cancelada" || form.status === "consulta";
+
+  const conflict = useMemo(
+    () =>
+      blocking
+        ? null
+        : findConflict({
+            propertyId: form.property_id,
+            checkIn: form.check_in,
+            checkOut: form.check_out,
+            reservations,
+            blocks,
+            excludeId: reservation?.id,
+          }),
+    [blocking, form.property_id, form.check_in, form.check_out, reservations, blocks, reservation?.id],
+  );
+
+  // Próximas fechas ocupadas de la propiedad elegida (referencia visual).
+  const busy = useMemo(() => {
+    if (!form.property_id) return [];
+    const today = toISODate(new Date());
+    const fromRes = reservations
+      .filter(
+        (r) =>
+          r.property_id === form.property_id &&
+          r.id !== reservation?.id &&
+          ACTIVE_STATUSES.includes(r.status) &&
+          r.check_out >= today,
+      )
+      .map((r) => ({ from: r.check_in, to: r.check_out, label: "Reservada" }));
+    const fromBlocks = blocks
+      .filter((b) => b.property_id === form.property_id && b.end_date >= today)
+      .map((b) => ({ from: b.start_date, to: b.end_date, label: "Bloqueada" }));
+    return [...fromRes, ...fromBlocks].sort((a, b) => a.from.localeCompare(b.from)).slice(0, 8);
+  }, [form.property_id, reservations, blocks, reservation?.id]);
+
+  const alreadyPaid = reservation ? paidFor(reservation.id, payments) : 0;
+  const totalNumber = Number(form.total_price) || 0;
+  const depositNumber = Number(deposit) || 0;
+  const balance = Math.max(0, totalNumber - (reservation ? alreadyPaid : depositNumber));
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.property_id) {
@@ -81,8 +129,21 @@ export function ReservationForm({
       toast.error("El check-out debe ser posterior al check-in");
       return;
     }
+    if (conflict) {
+      toast.error(
+        conflict.kind === "reserva"
+          ? "Estas fechas ya están reservadas para esta propiedad."
+          : "Estas fechas están bloqueadas para esta propiedad.",
+        { description: `${conflict.kind === "reserva" ? "Reservada" : "Bloqueada"} desde ${fmtDate(conflict.from)} hasta ${fmtDate(conflict.to)}.` },
+      );
+      return;
+    }
+    if (!reservation && depositNumber > totalNumber) {
+      toast.error("La seña no puede ser mayor al precio total");
+      return;
+    }
     try {
-      await save.mutateAsync({
+      const row = await save.mutateAsync({
         id: reservation?.id,
         values: {
           property_id: form.property_id,
@@ -90,15 +151,33 @@ export function ReservationForm({
           check_in: form.check_in,
           check_out: form.check_out,
           guests_count: Number(form.guests_count),
-          total_price: Number(form.total_price),
+          total_price: totalNumber,
           status: form.status,
           notes: form.notes,
         },
       });
+      if (!reservation && depositNumber > 0 && row) {
+        await savePayment.mutateAsync({
+          values: {
+            reservation_id: (row as { id: string }).id,
+            amount: depositNumber,
+            method: "transferencia",
+            paid_at: toISODate(new Date()),
+            notes: "Seña",
+          },
+        });
+      }
       toast.success(reservation ? "Reserva actualizada" : "Reserva creada");
       onOpenChange(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "No se pudo guardar la reserva");
+      const msg = err instanceof Error ? err.message : "";
+      if (/overlap|solap|Ya existe una reserva|exclusion/i.test(msg)) {
+        toast.error("Estas fechas ya están reservadas para esta propiedad.");
+      } else if (/bloquead/i.test(msg)) {
+        toast.error("Estas fechas están bloqueadas en el calendario.");
+      } else {
+        toast.error(msg || "No se pudo guardar la reserva");
+      }
     }
   }
 
@@ -157,22 +236,88 @@ export function ReservationForm({
               </select>
             </Field>
           </div>
-          <Field label="Precio total (ARS)">
-            <Input type="number" min={0} value={form.total_price} onChange={(e) => set("total_price", e.target.value)} className="h-11" />
-          </Field>
-          {suggested > 0 && (
-            <button
-              type="button"
-              onClick={() => set("total_price", suggested)}
-              className="text-primary text-xs font-medium"
-            >
-              Usar precio sugerido: {money(suggested)} ({nights(form.check_in, form.check_out)} noches)
-            </button>
+
+          {conflict && (
+            <div className="bg-destructive/10 text-destructive rounded-xl p-3 text-sm">
+              <p className="font-semibold">
+                {conflict.kind === "reserva"
+                  ? "Estas fechas ya están reservadas para esta propiedad."
+                  : "Estas fechas están bloqueadas para esta propiedad."}
+              </p>
+              <p className="mt-1 text-xs">
+                {conflict.kind === "reserva" ? "Reservada" : "Bloqueada"} desde {fmtDate(conflict.from)} hasta{" "}
+                {fmtDate(conflict.to)}.
+              </p>
+            </div>
           )}
+
+          {busy.length > 0 && (
+            <div className="bg-muted rounded-xl p-3">
+              <p className="text-xs font-semibold">Fechas no disponibles</p>
+              <ul className="text-muted-foreground mt-1 space-y-0.5 text-xs">
+                {busy.map((b, i) => (
+                  <li key={`${b.from}-${i}`}>
+                    {b.label}: {fmtDate(b.from)} → {fmtDate(b.to)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="rounded-xl border p-3">
+            <p className="text-sm font-bold">Pago</p>
+            <div className="mt-3 space-y-3">
+              <Field label="Precio total (ARS)">
+                <Input type="number" min={0} value={form.total_price} onChange={(e) => set("total_price", e.target.value)} className="h-11" />
+              </Field>
+              {suggested > 0 && (
+                <button type="button" onClick={() => set("total_price", suggested)} className="text-primary text-xs font-medium">
+                  Usar precio sugerido: {money(suggested)} ({nights(form.check_in, form.check_out)} noches)
+                </button>
+              )}
+              {reservation ? (
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <p className="text-muted-foreground text-xs">Cobrado</p>
+                    <p className="text-success font-semibold">{money(alreadyPaid)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs">Saldo pendiente</p>
+                    <p className="font-semibold">{money(balance)}</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <Field label="Seña (ARS)">
+                    <Input
+                      type="number"
+                      min={0}
+                      max={totalNumber || undefined}
+                      value={deposit}
+                      onChange={(e) => setDeposit(e.target.value)}
+                      className="h-11"
+                      placeholder="0"
+                    />
+                  </Field>
+                  {depositNumber > totalNumber && (
+                    <p className="text-destructive text-xs">La seña no puede superar el precio total.</p>
+                  )}
+                  <div className="bg-muted flex items-center justify-between rounded-lg px-3 py-2 text-sm">
+                    <span className="text-muted-foreground">Saldo pendiente</span>
+                    <span className="font-semibold">{money(balance)}</span>
+                  </div>
+                  <p className="text-muted-foreground text-xs">
+                    La seña se registra como un pago real de la reserva y se refleja en Finanzas.
+                  </p>
+                </>
+              )}
+            </div>
+          </div>
+
           <Field label="Notas">
             <Textarea rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} />
           </Field>
-          <Button type="submit" className="h-12 w-full" disabled={save.isPending}>
+          <Button type="submit" className="h-12 w-full" disabled={save.isPending || !!conflict}>
             Guardar reserva
           </Button>
         </form>
@@ -180,6 +325,7 @@ export function ReservationForm({
     </Dialog>
   );
 }
+
 
 function PaymentsDialog({ reservation, onClose }: { reservation: Reservation; onClose: () => void }) {
   const { data: payments = [] } = usePayments();

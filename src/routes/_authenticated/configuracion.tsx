@@ -10,6 +10,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useProfile, useSave } from "@/lib/data";
 import { supabase } from "@/integrations/supabase/client";
 import { DemoDataSection } from "@/components/DemoDataSection";
+import { PlansSection } from "@/components/PlansSection";
+
 
 export const Route = createFileRoute("/_authenticated/configuracion")({
   head: () => ({
@@ -64,7 +66,10 @@ function SettingsPage() {
           </form>
         </SectionCard>
 
+        <PlansSection />
+
         <DemoDataSection />
+
 
         <SectionCard title="Sesión">
           <p className="text-muted-foreground text-sm">

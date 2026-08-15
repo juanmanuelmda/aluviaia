@@ -114,6 +114,8 @@ function GuestsPage() {
   const save = useSave("guests", ["guests"]);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Guest | null>(null);
+  const [query, setQuery] = useState("");
+
 
   const propName = (id: string) => properties.find((p) => p.id === id)?.name ?? "-";
 
@@ -126,6 +128,17 @@ function GuestsPage() {
 
   const guestRes = selected ? reservations.filter((r) => r.guest_id === selected.id) : [];
   const guestMsgs = selected ? messages.filter((m) => m.guest_id === selected.id) : [];
+
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? guests.filter((g) =>
+        [g.first_name, g.last_name, g.phone, g.email]
+          .join(" ")
+          .toLowerCase()
+          .includes(q),
+      )
+    : guests;
+
 
   return (
     <AppShell
@@ -141,22 +154,35 @@ function GuestsPage() {
       {guests.length === 0 ? (
         <Empty text="Todavía no cargaste huéspedes." />
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {guests.map((g) => (
-            <button
-              key={g.id}
-              onClick={() => setSelected(g)}
-              className="bg-card shadow-soft rounded-2xl border p-4 text-left"
-            >
-              <p className="font-semibold">{`${g.first_name} ${g.last_name}`.trim()}</p>
-              <p className="text-muted-foreground mt-0.5 text-sm">{g.phone || g.email || g.country}</p>
-              <p className="text-muted-foreground mt-2 text-xs">
-                {reservations.filter((r) => r.guest_id === g.id).length} reserva(s)
-              </p>
-            </button>
-          ))}
+        <div className="space-y-3">
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar por nombre, apellido, teléfono o email"
+            className="h-11"
+          />
+          {filtered.length === 0 ? (
+            <Empty text={`No encontramos huéspedes para "${query}".`} />
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {filtered.map((g) => (
+                <button
+                  key={g.id}
+                  onClick={() => setSelected(g)}
+                  className="bg-card shadow-soft rounded-2xl border p-4 text-left"
+                >
+                  <p className="font-semibold">{`${g.first_name} ${g.last_name}`.trim()}</p>
+                  <p className="text-muted-foreground mt-0.5 text-sm">{g.phone || g.email || g.country}</p>
+                  <p className="text-muted-foreground mt-2 text-xs">
+                    {reservations.filter((r) => r.guest_id === g.id).length} reserva(s)
+                  </p>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
+
 
       <Dialog open={!!selected} onOpenChange={(v) => !v && setSelected(null)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">

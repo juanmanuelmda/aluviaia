@@ -34,7 +34,13 @@ function FinancePage() {
   const { data: reservations = [] } = useReservations();
   const saveExpense = useSave("expenses", ["expenses"]);
   const [open, setOpen] = useState(false);
+  const [range, setRange] = useState<"mes" | "anio" | "custom">("mes");
   const [month, setMonth] = useState(() => toISODate(new Date()).slice(0, 7));
+  const [year, setYear] = useState(() => String(new Date().getFullYear()));
+  const [custom, setCustom] = useState(() => ({
+    from: `${toISODate(new Date()).slice(0, 4)}-01-01`,
+    to: toISODate(new Date()),
+  }));
   const [form, setForm] = useState({
     amount: "",
     category: "general",
@@ -43,11 +49,24 @@ function FinancePage() {
     spent_at: toISODate(new Date()),
   });
 
-  const monthPayments = payments.filter((p) => p.paid_at.startsWith(month));
-  const monthExpenses = expenses.filter((e) => e.spent_at.startsWith(month));
+  const period = useMemo(() => {
+    if (range === "mes") {
+      const [y, m] = month.split("-").map(Number);
+      const last = new Date(y!, m!, 0).getDate();
+      return { from: `${month}-01`, to: `${month}-${String(last).padStart(2, "0")}`, label: `Mes ${month}` };
+    }
+    if (range === "anio") return { from: `${year}-01-01`, to: `${year}-12-31`, label: `Año ${year}` };
+    return { from: custom.from, to: custom.to, label: "Período personalizado" };
+  }, [range, month, year, custom]);
+
+  const inRange = (d: string) => d >= period.from && d <= period.to;
+
+  const monthPayments = payments.filter((p) => inRange(p.paid_at));
+  const monthExpenses = expenses.filter((e) => inRange(e.spent_at));
   const income = monthPayments.reduce((s, p) => s + Number(p.amount), 0);
   const outcome = monthExpenses.reduce((s, e) => s + Number(e.amount), 0);
   const pending = reservations.reduce((s, r) => s + Math.max(0, balanceFor(r, payments).pending), 0);
+
 
   const byProperty = useMemo(() => {
     return properties.map((prop) => {
@@ -88,11 +107,56 @@ function FinancePage() {
       }
     >
       <div className="space-y-4">
-        <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="h-11 sm:max-w-xs" />
+        <div className="bg-card space-y-3 rounded-2xl border p-3">
+          <div className="flex gap-2">
+            {(
+              [
+                ["mes", "Mes"],
+                ["anio", "Año"],
+                ["custom", "Personalizado"],
+              ] as const
+            ).map(([v, label]) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setRange(v)}
+                className={`h-9 flex-1 rounded-lg text-sm font-medium ${range === v ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {range === "mes" && (
+            <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="h-11 sm:max-w-xs" />
+          )}
+          {range === "anio" && (
+            <select className={SELECT_CLASS} value={year} onChange={(e) => setYear(e.target.value)}>
+              {Array.from({ length: 6 }, (_, i) => String(new Date().getFullYear() - i)).map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
+          )}
+          {range === "custom" && (
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Desde">
+                <Input type="date" value={custom.from} onChange={(e) => setCustom({ ...custom, from: e.target.value })} className="h-11" />
+              </Field>
+              <Field label="Hasta">
+                <Input type="date" value={custom.to} onChange={(e) => setCustom({ ...custom, to: e.target.value })} className="h-11" />
+              </Field>
+            </div>
+          )}
+          <p className="text-muted-foreground text-xs">
+            Mostrando {fmtDate(period.from)} → {fmtDate(period.to)}
+          </p>
+        </div>
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard label="Ingresos del mes" value={money(income)} tone="success" />
-          <StatCard label="Gastos del mes" value={money(outcome)} tone="warning" />
+          <StatCard label="Ingresos del período" value={money(income)} tone="success" />
+          <StatCard label="Gastos del período" value={money(outcome)} tone="warning" />
+
           <StatCard label="Resultado neto" value={money(income - outcome)} />
           <StatCard label="Por cobrar" value={money(pending)} tone="warning" hint="Saldo de todas las reservas" />
         </div>
@@ -119,7 +183,7 @@ function FinancePage() {
           )}
         </SectionCard>
 
-        <SectionCard title="Gastos del mes">
+        <SectionCard title="Gastos del período">
           {monthExpenses.length === 0 ? (
             <Empty text="Sin gastos registrados este mes." />
           ) : (

@@ -199,6 +199,31 @@ export const useProfile = () =>
     },
   });
 
+export type Subscription = {
+  id: string;
+  plan: string;
+  status: string;
+  started_at: string | null;
+  renews_at: string | null;
+  payment_status: string | null;
+};
+
+export const useSubscription = () =>
+  useQuery({
+    queryKey: ["subscription"],
+    queryFn: async () => {
+      const { data, error } = await db
+        .from("subscriptions")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? null) as Subscription | null;
+    },
+  });
+
+
 /** Generic write helper that keeps every module in sync. */
 export function useSave(tableName: string, invalidate: string[]) {
   const qc = useQueryClient();

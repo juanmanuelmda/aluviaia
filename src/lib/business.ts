@@ -18,6 +18,33 @@ export function overlaps(aIn: string, aOut: string, bIn: string, bOut: string) {
   return aIn < bOut && bIn < aOut;
 }
 
+/** Busca una reserva activa o un bloqueo que choque con el rango pedido. */
+export function findConflict(args: {
+  propertyId: string;
+  checkIn: string;
+  checkOut: string;
+  reservations: Reservation[];
+  blocks?: Block[];
+  excludeId?: string | undefined;
+}) {
+  const { propertyId, checkIn, checkOut, reservations, blocks = [], excludeId } = args;
+  if (!propertyId || !checkIn || !checkOut || checkOut <= checkIn) return null;
+  const res = reservations.find(
+    (r) =>
+      r.property_id === propertyId &&
+      r.id !== excludeId &&
+      ACTIVE_STATUSES.includes(r.status) &&
+      overlaps(checkIn, checkOut, r.check_in, r.check_out),
+  );
+  if (res) return { kind: "reserva" as const, from: res.check_in, to: res.check_out, res };
+  const blk = blocks.find(
+    (b) => b.property_id === propertyId && overlaps(checkIn, checkOut, b.start_date, b.end_date),
+  );
+  if (blk) return { kind: "bloqueo" as const, from: blk.start_date, to: blk.end_date, block: blk };
+  return null;
+}
+
+
 export function isBusy(
   propertyId: string,
   day: string,

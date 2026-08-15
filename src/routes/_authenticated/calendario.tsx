@@ -27,6 +27,7 @@ export const Route = createFileRoute("/_authenticated/calendario")({
 const SELECT_CLASS =
   "h-11 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
 const DAYS = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"];
+const PROPERTY_TONES = ["bg-primary", "bg-accent", "bg-warning", "bg-success", "bg-destructive"];
 
 function CalendarPage() {
   const { data: properties = [] } = useProperties();
@@ -35,7 +36,7 @@ function CalendarPage() {
   const { data: guests = [] } = useGuests();
   const saveBlock = useSave("calendar_blocks", ["blocks"]);
 
-  const [propertyId, setPropertyId] = useState("");
+  const [propertyId, setPropertyId] = useState("all");
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -45,7 +46,9 @@ function CalendarPage() {
   const [blockOpen, setBlockOpen] = useState(false);
   const [blockEnd, setBlockEnd] = useState("");
 
-  const activeProperty = propertyId || properties[0]?.id || "";
+  const allMode = propertyId === "all";
+  const activeProperty = allMode ? (properties[0]?.id ?? "") : propertyId;
+
 
   const cells = useMemo(() => {
     const first = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
@@ -117,7 +120,8 @@ function CalendarPage() {
         <Empty text="Cargá una propiedad para ver su calendario." />
       ) : (
         <div className="space-y-4">
-          <select className={SELECT_CLASS} value={activeProperty} onChange={(e) => setPropertyId(e.target.value)}>
+          <select className={SELECT_CLASS} value={propertyId} onChange={(e) => setPropertyId(e.target.value)}>
+            <option value="all">Todas las propiedades</option>
             {properties.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
@@ -138,41 +142,104 @@ function CalendarPage() {
               </div>
             }
           >
-            <div className="grid grid-cols-7 gap-1 text-center">
-              {DAYS.map((d) => (
-                <div key={d} className="text-muted-foreground pb-1 text-[11px] font-medium">
-                  {d}
+            {allMode ? (
+              <div className="space-y-4">
+                {properties.map((p, idx) => {
+                  const monthDays = cells.filter(Boolean) as string[];
+                  const rows = reservations.filter(
+                    (r) =>
+                      r.property_id === p.id &&
+                      ACTIVE_STATUSES.includes(r.status) &&
+                      r.check_in < monthDays[monthDays.length - 1]! &&
+                      r.check_out > monthDays[0]!,
+                  );
+                  const blks = blocks.filter(
+                    (b) => b.property_id === p.id && b.start_date <= monthDays[monthDays.length - 1]! && b.end_date > monthDays[0]!,
+                  );
+                  return (
+                    <div key={p.id}>
+                      <div className="mb-1.5 flex items-center gap-2">
+                        <i className={`size-3 rounded ${PROPERTY_TONES[idx % PROPERTY_TONES.length]}`} />
+                        <p className="truncate text-sm font-semibold">{p.name}</p>
+                      </div>
+                      <div className="grid grid-cols-7 gap-1">
+                        {cells.map((day, i) => {
+                          if (!day) return <div key={`e${p.id}${i}`} />;
+                          const res = rows.find((r) => day >= r.check_in && day < r.check_out);
+                          const blk = blks.find((b) => day >= b.start_date && day < b.end_date);
+                          const tone = res
+                            ? PROPERTY_TONES[idx % PROPERTY_TONES.length]
+                            : blk
+                              ? "bg-muted-foreground/25"
+                              : "bg-success-soft";
+                          return (
+                            <div
+                              key={`${p.id}${day}`}
+                              title={`${p.name} · ${fmtDate(day)}`}
+                              className={`h-6 rounded text-center text-[10px] leading-6 ${tone} ${day === toISODate(new Date()) ? "ring-primary ring-2" : ""}`}
+                            >
+                              {Number(day.slice(-2))}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <p className="text-muted-foreground mt-1 text-xs">
+                        {rows.length === 0 && blks.length === 0
+                          ? "Disponible todo el mes"
+                          : rows
+                              .map((r) => `Reserva ${fmtDate(r.check_in)} → ${fmtDate(r.check_out)}`)
+                              .concat(blks.map((b) => `Bloqueo ${fmtDate(b.start_date)} → ${fmtDate(b.end_date)} (${b.reason})`))
+                              .join(" · ")}
+                      </p>
+                    </div>
+                  );
+                })}
+                <div className="text-muted-foreground flex flex-wrap gap-4 text-xs">
+                  <span className="flex items-center gap-1.5"><i className="bg-success-soft size-3 rounded" /> Libre</span>
+                  <span className="flex items-center gap-1.5"><i className="bg-muted-foreground/25 size-3 rounded" /> Bloqueado</span>
+                  <span>Cada propiedad usa su propio color para las reservas.</span>
                 </div>
-              ))}
-              {cells.map((day, i) => {
-                if (!day) return <div key={`e${i}`} />;
-                const res = reservationOn(day);
-                const blk = blockOn(day);
-                const today = day === toISODate(new Date());
-                const tone = res
-                  ? "bg-primary text-primary-foreground"
-                  : blk
-                    ? "bg-muted-foreground/25 text-foreground"
-                    : "bg-success-soft text-foreground";
-                return (
-                  <button
-                    key={day}
-                    onClick={() => setSelectedDay(day)}
-                    className={`aspect-square rounded-lg text-xs font-medium ${tone} ${today ? "ring-primary ring-2" : ""}`}
-                  >
-                    {Number(day.slice(-2))}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="text-muted-foreground mt-4 flex flex-wrap gap-4 text-xs">
-              <span className="flex items-center gap-1.5"><i className="bg-success-soft size-3 rounded" /> Libre</span>
-              <span className="flex items-center gap-1.5"><i className="bg-primary size-3 rounded" /> Reservado</span>
-              <span className="flex items-center gap-1.5"><i className="bg-muted-foreground/25 size-3 rounded" /> Bloqueado</span>
-            </div>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-7 gap-1 text-center">
+                  {DAYS.map((d) => (
+                    <div key={d} className="text-muted-foreground pb-1 text-[11px] font-medium">
+                      {d}
+                    </div>
+                  ))}
+                  {cells.map((day, i) => {
+                    if (!day) return <div key={`e${i}`} />;
+                    const res = reservationOn(day);
+                    const blk = blockOn(day);
+                    const today = day === toISODate(new Date());
+                    const tone = res
+                      ? "bg-primary text-primary-foreground"
+                      : blk
+                        ? "bg-muted-foreground/25 text-foreground"
+                        : "bg-success-soft text-foreground";
+                    return (
+                      <button
+                        key={day}
+                        onClick={() => setSelectedDay(day)}
+                        className={`aspect-square rounded-lg text-xs font-medium ${tone} ${today ? "ring-primary ring-2" : ""}`}
+                      >
+                        {Number(day.slice(-2))}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="text-muted-foreground mt-4 flex flex-wrap gap-4 text-xs">
+                  <span className="flex items-center gap-1.5"><i className="bg-success-soft size-3 rounded" /> Libre</span>
+                  <span className="flex items-center gap-1.5"><i className="bg-primary size-3 rounded" /> Reservado</span>
+                  <span className="flex items-center gap-1.5"><i className="bg-muted-foreground/25 size-3 rounded" /> Bloqueado</span>
+                </div>
+              </>
+            )}
           </SectionCard>
         </div>
       )}
+
 
       <Dialog open={!!selectedDay && !resOpen} onOpenChange={(v) => !v && setSelectedDay(null)}>
         <DialogContent className="sm:max-w-sm">
