@@ -64,7 +64,10 @@ function SettingsPage() {
           </form>
         </SectionCard>
 
+        <PlansSection />
+
         <DemoDataSection />
+
 
         <SectionCard title="Sesión">
           <p className="text-muted-foreground text-sm">
