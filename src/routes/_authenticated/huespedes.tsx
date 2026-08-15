@@ -127,6 +127,17 @@ function GuestsPage() {
   const guestRes = selected ? reservations.filter((r) => r.guest_id === selected.id) : [];
   const guestMsgs = selected ? messages.filter((m) => m.guest_id === selected.id) : [];
 
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? guests.filter((g) =>
+        [g.first_name, g.last_name, g.phone, g.email]
+          .join(" ")
+          .toLowerCase()
+          .includes(q),
+      )
+    : guests;
+
+
   return (
     <AppShell
       title="Huéspedes"
