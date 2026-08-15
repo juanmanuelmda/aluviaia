@@ -27,6 +27,7 @@ export const Route = createFileRoute("/_authenticated/calendario")({
 const SELECT_CLASS =
   "h-11 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
 const DAYS = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"];
+const PROPERTY_TONES = ["bg-primary", "bg-accent", "bg-warning", "bg-info", "bg-destructive"];
 
 function CalendarPage() {
   const { data: properties = [] } = useProperties();
@@ -35,7 +36,7 @@ function CalendarPage() {
   const { data: guests = [] } = useGuests();
   const saveBlock = useSave("calendar_blocks", ["blocks"]);
 
-  const [propertyId, setPropertyId] = useState("");
+  const [propertyId, setPropertyId] = useState("all");
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -45,7 +46,9 @@ function CalendarPage() {
   const [blockOpen, setBlockOpen] = useState(false);
   const [blockEnd, setBlockEnd] = useState("");
 
-  const activeProperty = propertyId || properties[0]?.id || "";
+  const allMode = propertyId === "all";
+  const activeProperty = allMode ? (properties[0]?.id ?? "") : propertyId;
+
 
   const cells = useMemo(() => {
     const first = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
