@@ -114,6 +114,8 @@ function GuestsPage() {
   const save = useSave("guests", ["guests"]);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Guest | null>(null);
+  const [query, setQuery] = useState("");
+
 
   const propName = (id: string) => properties.find((p) => p.id === id)?.name ?? "-";
 
