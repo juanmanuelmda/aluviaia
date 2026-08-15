@@ -27,7 +27,7 @@ export const Route = createFileRoute("/_authenticated/calendario")({
 const SELECT_CLASS =
   "h-11 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
 const DAYS = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"];
-const PROPERTY_TONES = ["bg-primary", "bg-accent", "bg-warning", "bg-info", "bg-destructive"];
+const PROPERTY_TONES = ["bg-primary", "bg-accent", "bg-warning", "bg-success", "bg-destructive"];
 
 function CalendarPage() {
   const { data: properties = [] } = useProperties();
