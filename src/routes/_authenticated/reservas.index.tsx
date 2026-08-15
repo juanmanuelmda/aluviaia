@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  useBlocks,
   useGuests,
   usePayments,
   useProperties,
@@ -17,7 +18,8 @@ import {
   useSave,
   type Reservation,
 } from "@/lib/data";
-import { balanceFor, paidFor } from "@/lib/business";
+import { ACTIVE_STATUSES, balanceFor, findConflict, paidFor } from "@/lib/business";
+
 import { fmtDate, money, nights, STATUS_LABEL, toISODate } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/reservas/")({
