@@ -39,10 +39,23 @@ function AuthPage() {
   });
 
   useEffect(() => {
+    let done = false;
+    const go = () => {
+      if (done) return;
+      done = true;
+      navigate({ to: "/panel", replace: true });
+    };
+    // Sesión ya existente (recarga de página o vuelta desde Google).
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/panel" });
+      if (data.session) go();
     });
+    // Sesión que se establece justo después del redirect de OAuth.
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session && (event === "SIGNED_IN" || event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED")) go();
+    });
+    return () => sub.subscription.unsubscribe();
   }, [navigate]);
+
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -100,15 +113,19 @@ function AuthPage() {
 
   async function google() {
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      // Volvemos a esta misma pantalla pública: acá se recupera la sesión
+      // y recién entonces se navega al panel.
+      redirect_uri: `${window.location.origin}/auth`,
     });
     if (result.error) {
       toast.error("No pudimos iniciar sesión con Google");
       return;
     }
     if (result.redirected) return;
-    navigate({ to: "/panel" });
+    const { data } = await supabase.auth.getSession();
+    if (data.session) navigate({ to: "/panel", replace: true });
   }
+
 
   return (
     <div className="bg-hero flex min-h-screen flex-col items-center justify-center px-4 py-10">
