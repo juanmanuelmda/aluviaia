@@ -183,7 +183,7 @@ function FinancePage() {
           )}
         </SectionCard>
 
-        <SectionCard title="Gastos del mes">
+        <SectionCard title="Gastos del período">
           {monthExpenses.length === 0 ? (
             <Empty text="Sin gastos registrados este mes." />
           ) : (
