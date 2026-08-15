@@ -107,11 +107,56 @@ function FinancePage() {
       }
     >
       <div className="space-y-4">
-        <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="h-11 sm:max-w-xs" />
+        <div className="bg-card space-y-3 rounded-2xl border p-3">
+          <div className="flex gap-2">
+            {(
+              [
+                ["mes", "Mes"],
+                ["anio", "Año"],
+                ["custom", "Personalizado"],
+              ] as const
+            ).map(([v, label]) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setRange(v)}
+                className={`h-9 flex-1 rounded-lg text-sm font-medium ${range === v ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {range === "mes" && (
+            <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="h-11 sm:max-w-xs" />
+          )}
+          {range === "anio" && (
+            <select className={SELECT_CLASS} value={year} onChange={(e) => setYear(e.target.value)}>
+              {Array.from({ length: 6 }, (_, i) => String(new Date().getFullYear() - i)).map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
+          )}
+          {range === "custom" && (
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Desde">
+                <Input type="date" value={custom.from} onChange={(e) => setCustom({ ...custom, from: e.target.value })} className="h-11" />
+              </Field>
+              <Field label="Hasta">
+                <Input type="date" value={custom.to} onChange={(e) => setCustom({ ...custom, to: e.target.value })} className="h-11" />
+              </Field>
+            </div>
+          )}
+          <p className="text-muted-foreground text-xs">
+            Mostrando {fmtDate(period.from)} → {fmtDate(period.to)}
+          </p>
+        </div>
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard label="Ingresos del mes" value={money(income)} tone="success" />
-          <StatCard label="Gastos del mes" value={money(outcome)} tone="warning" />
+          <StatCard label="Ingresos del período" value={money(income)} tone="success" />
+          <StatCard label="Gastos del período" value={money(outcome)} tone="warning" />
+
           <StatCard label="Resultado neto" value={money(income - outcome)} />
           <StatCard label="Por cobrar" value={money(pending)} tone="warning" hint="Saldo de todas las reservas" />
         </div>
