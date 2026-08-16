@@ -72,8 +72,9 @@ function Panel() {
 
   const alerts: { text: string; to: string }[] = [];
   const pendingPayments = reservations.filter(
-    (r) => ["confirmada", "checkin", "finalizada"].includes(r.status) && Number(r.total_price) - paidFor(r.id, payments) > 0,
+    (r) => r.status !== "cancelada" && Number(r.total_price) - paidFor(r.id, payments) > 0,
   );
+
   if (pendingPayments.length)
     alerts.push({ text: `${pendingPayments.length} reserva(s) con saldo pendiente de cobro.`, to: "/finanzas" });
   const pendingRes = reservations.filter((r) => r.status === "pendiente" || r.status === "consulta");
