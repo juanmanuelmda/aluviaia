@@ -189,7 +189,7 @@ function FinancePage() {
                   <div className="min-w-0">
                     <p className="truncate font-medium">{prop.name}</p>
                     <p className="text-muted-foreground text-xs">
-                      Ingresos {money(inc)} · Gastos {money(out)}
+                      Cobrado {money(inc)} · Gastos {money(out)}
                     </p>
                   </div>
                   <span className={net >= 0 ? "text-success font-semibold" : "text-destructive font-semibold"}>
@@ -235,7 +235,7 @@ function FinancePage() {
           )}
         </SectionCard>
 
-        <SectionCard title="Cobros del mes">
+        <SectionCard title="Cobros del período">
           {monthPayments.length === 0 ? (
             <Empty text="Sin cobros registrados este mes." />
           ) : (
