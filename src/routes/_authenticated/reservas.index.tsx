@@ -502,11 +502,17 @@ function ReservationsPage() {
                           {properties.find((p) => p.id === r.property_id)?.name} · {fmtDate(r.check_in)} → {fmtDate(r.check_out)}
                         </p>
                         <p className="mt-1 text-xs">
-                          Total {money(r.total_price)} ·{" "}
-                          <span className={balance > 0 ? "text-warning font-medium" : "text-success font-medium"}>
-                            {balance > 0 ? `Saldo ${money(balance)}` : "Cobrado"}
-                          </span>
+                          Total {money(r.total_price)}
+                          {r.status !== "cancelada" && (
+                            <>
+                              {" · "}
+                              <span className={balance > 0 ? "text-warning font-medium" : "text-success font-medium"}>
+                                {balance > 0 ? `Saldo ${money(balance)}` : "Cobrado"}
+                              </span>
+                            </>
+                          )}
                         </p>
+
                       </button>
                       <div className="flex shrink-0 flex-col items-end gap-2">
                         <StatusBadge status={r.status} />

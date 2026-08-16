@@ -1,4 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getFinanzas, monthLabel, monthPeriod } from "./finance";
+
 
 const MODEL = "google/gemini-3.5-flash";
 
