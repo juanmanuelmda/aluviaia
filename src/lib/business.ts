@@ -202,7 +202,7 @@ export function detectOpportunities(args: {
     }
     const paid = paidFor(r.id, payments);
     const pending = Number(r.total_price) - paid;
-    if (pending > 0 && ["confirmada", "checkin", "finalizada"].includes(r.status)) {
+    if (pending > 0 && r.status !== "cancelada") {
       const g = guests.find((x) => x.id === r.guest_id);
       out.push({
         key: `pago_pendiente:${r.id}`,
