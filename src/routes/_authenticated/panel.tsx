@@ -37,23 +37,19 @@ function Panel() {
   const today = new Date();
   const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
   const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 1);
-  const monthPrefix = toISODate(today).slice(0, 7);
+  const { desde, hasta } = monthPeriod(today);
+  const mesLabel = monthLabel(today);
 
+  const fin = getFinanzas({ desde, hasta, reservations, payments, expenses: [] });
   const monthRes = reservations.filter(
-    (r) => r.check_in >= toISODate(monthStart) && r.check_in < toISODate(monthEnd) && r.status !== "cancelada",
+    (r) => r.check_in >= desde && r.check_in <= hasta && r.status !== "cancelada",
   );
-  const income = monthRes.reduce((s, r) => s + Number(r.total_price), 0);
-  const collected = payments
-    .filter((p) => p.paid_at.startsWith(monthPrefix))
-    .reduce((s, p) => s + Number(p.amount), 0);
-  const pending = reservations
-    .filter((r) => r.status !== "cancelada" && r.status !== "consulta")
-    .reduce((s, r) => s + Math.max(0, Number(r.total_price) - paidFor(r.id, payments)), 0);
 
   const occ = properties.length
     ? properties.reduce((s, p) => s + occupancyRate(p.id, reservations, monthStart, monthEnd).rate, 0) /
       properties.length
     : 0;
+
 
   const guestName = (id: string | null) => {
     const g = guests.find((x) => x.id === id);
