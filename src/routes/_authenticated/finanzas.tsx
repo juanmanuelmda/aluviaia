@@ -171,12 +171,13 @@ function FinancePage() {
         </div>
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard label="Ingresos del período" value={money(income)} tone="success" />
-          <StatCard label="Gastos del período" value={money(outcome)} tone="warning" />
-
-          <StatCard label="Resultado neto" value={money(income - outcome)} />
-          <StatCard label="Por cobrar" value={money(pending)} tone="warning" hint="Saldo de todas las reservas" />
+          <StatCard label="Ingresos (reservado)" value={money(fin.ingresosReservado)} hint="Reservas no canceladas con check-in en el período" />
+          <StatCard label="Cobrado" value={money(fin.cobrado)} tone="success" hint="Pagos con fecha en el período" />
+          <StatCard label="Gastos" value={money(fin.gastos)} tone="warning" hint="Gastos con fecha en el período" />
+          <StatCard label="Resultado neto" value={money(fin.resultadoNeto)} hint="Cobrado - Gastos" />
+          <StatCard label="Pendiente de cobro" value={money(fin.pendienteCobro)} tone="warning" hint="Saldo de reservas no canceladas (total)" />
         </div>
+
 
         <SectionCard title="Rentabilidad por propiedad">
           {byProperty.length === 0 ? (
