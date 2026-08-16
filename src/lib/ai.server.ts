@@ -1,4 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getFinanzas, monthLabel, monthPeriod } from "./finance";
+
 
 const MODEL = "google/gemini-3.5-flash";
 
@@ -90,13 +92,14 @@ export async function buildSnapshot(supabase: DB) {
     };
   });
 
-  const month = iso(today).slice(0, 7);
-  const cobradoMes = pays
-    .filter((p) => String(p.paid_at).startsWith(month))
-    .reduce((s, p) => s + Number(p.amount), 0);
-  const gastosMes = (expenses.data ?? [])
-    .filter((e: any) => String(e.spent_at).startsWith(month))
-    .reduce((s: number, e: any) => s + Number(e.amount), 0);
+  const { desde, hasta } = monthPeriod(today);
+  const fin = getFinanzas({
+    desde,
+    hasta,
+    reservations: res as any,
+    payments: pays as any,
+    expenses: (expenses.data ?? []) as any,
+  });
 
   return {
     fecha_actual: iso(today),
@@ -117,15 +120,23 @@ export async function buildSnapshot(supabase: DB) {
       motivo: b.reason,
     })),
     finanzas: {
-      cobrado_mes_actual: cobradoMes,
-      gastos_mes_actual: gastosMes,
-      resultado_mes_actual: cobradoMes - gastosMes,
-      pendiente_total: reservationSummaries
-        .filter((r) => r.estado !== "cancelada")
-        .reduce((s, r) => s + Math.max(0, r.pendiente), 0),
+      periodo: `${desde} a ${hasta} (mes calendario de ${monthLabel(today)})`,
+      ingresos_reservado_mes: fin.ingresosReservado,
+      cobrado_mes_actual: fin.cobrado,
+      gastos_mes_actual: fin.gastos,
+      resultado_neto_mes: fin.resultadoNeto,
+      pendiente_de_cobro_total: fin.pendienteCobro,
+      definiciones: {
+        "Ingresos (reservado)": "suma de total de reservas no canceladas con check-in en el período",
+        Cobrado: "suma de pagos con fecha de pago en el período",
+        "Pendiente de cobro": "saldo (total - cobrado) de todas las reservas no canceladas",
+        Gastos: "gastos con fecha en el período",
+        "Resultado neto": "Cobrado - Gastos",
+      },
     },
   };
 }
+
 
 export async function callGateway(messages: { role: string; content: string }[]) {
   const key = process.env["LOVABLE_API_KEY"];

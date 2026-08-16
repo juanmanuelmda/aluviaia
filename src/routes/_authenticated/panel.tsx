@@ -12,7 +12,9 @@ import {
   useDismissals,
 } from "@/lib/data";
 import { detectOpportunities, occupancyRate, paidFor, ACTIVE_STATUSES } from "@/lib/business";
+import { getFinanzas, monthLabel, monthPeriod } from "@/lib/finance";
 import { addDays, fmtDate, money, toISODate } from "@/lib/format";
+
 
 export const Route = createFileRoute("/_authenticated/panel")({
   head: () => ({
@@ -37,23 +39,19 @@ function Panel() {
   const today = new Date();
   const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
   const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 1);
-  const monthPrefix = toISODate(today).slice(0, 7);
+  const { desde, hasta } = monthPeriod(today);
+  const mesLabel = monthLabel(today);
 
+  const fin = getFinanzas({ desde, hasta, reservations, payments, expenses: [] });
   const monthRes = reservations.filter(
-    (r) => r.check_in >= toISODate(monthStart) && r.check_in < toISODate(monthEnd) && r.status !== "cancelada",
+    (r) => r.check_in >= desde && r.check_in <= hasta && r.status !== "cancelada",
   );
-  const income = monthRes.reduce((s, r) => s + Number(r.total_price), 0);
-  const collected = payments
-    .filter((p) => p.paid_at.startsWith(monthPrefix))
-    .reduce((s, p) => s + Number(p.amount), 0);
-  const pending = reservations
-    .filter((r) => r.status !== "cancelada" && r.status !== "consulta")
-    .reduce((s, r) => s + Math.max(0, Number(r.total_price) - paidFor(r.id, payments)), 0);
 
   const occ = properties.length
     ? properties.reduce((s, p) => s + occupancyRate(p.id, reservations, monthStart, monthEnd).rate, 0) /
       properties.length
     : 0;
+
 
   const guestName = (id: string | null) => {
     const g = guests.find((x) => x.id === id);
@@ -74,8 +72,9 @@ function Panel() {
 
   const alerts: { text: string; to: string }[] = [];
   const pendingPayments = reservations.filter(
-    (r) => ["confirmada", "checkin", "finalizada"].includes(r.status) && Number(r.total_price) - paidFor(r.id, payments) > 0,
+    (r) => r.status !== "cancelada" && Number(r.total_price) - paidFor(r.id, payments) > 0,
   );
+
   if (pendingPayments.length)
     alerts.push({ text: `${pendingPayments.length} reserva(s) con saldo pendiente de cobro.`, to: "/finanzas" });
   const pendingRes = reservations.filter((r) => r.status === "pendiente" || r.status === "consulta");
@@ -89,12 +88,13 @@ function Panel() {
       <div className="space-y-5">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
           <StatCard label="Propiedades" value={String(properties.length)} hint={`${properties.filter((p) => p.active).length} activas`} />
-          <StatCard label="Reservas del mes" value={String(monthRes.length)} />
-          <StatCard label="Ocupación del mes" value={`${Math.round(occ * 100)}%`} />
-          <StatCard label="Ingresos del mes" value={money(income)} hint="Reservas con check-in este mes" />
-          <StatCard label="Cobrado este mes" value={money(collected)} tone="success" />
-          <StatCard label="Pendiente de cobro" value={money(pending)} tone="warning" />
+          <StatCard label={`Reservas de ${mesLabel}`} value={String(monthRes.length)} />
+          <StatCard label={`Ocupación de ${mesLabel}`} value={`${Math.round(occ * 100)}%`} hint="Mes calendario" />
+          <StatCard label={`Ingresos (reservado) de ${mesLabel}`} value={money(fin.ingresosReservado)} hint="Reservas no canceladas con check-in este mes" />
+          <StatCard label={`Cobrado en ${mesLabel}`} value={money(fin.cobrado)} tone="success" />
+          <StatCard label="Pendiente de cobro" value={money(fin.pendienteCobro)} tone="warning" hint="Saldo de reservas no canceladas" />
         </div>
+
 
         <SectionCard title="Acciones rápidas">
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">

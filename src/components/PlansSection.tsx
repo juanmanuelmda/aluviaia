@@ -20,14 +20,14 @@ export const PLANS: Plan[] = [
     name: "Gratis",
     price: "$0",
     detail: "Para empezar a ordenar tu operación.",
-    features: ["1 propiedad", "Reservas y huéspedes ilimitados", "Calendario y pagos básicos"],
+    features: ["Hasta 2 propiedades", "Reservas y huéspedes ilimitados", "Calendario y pagos básicos"],
   },
   {
     key: "pro",
     name: "Pro",
     price: "$14.900 / mes",
     detail: "Para quien vive de sus alquileres.",
-    features: ["Hasta 5 propiedades", "Asistente IA y oportunidades", "Publicaciones y mensajes con IA", "Finanzas con filtros por período"],
+    features: ["Hasta 10 propiedades", "Asistente IA y oportunidades", "Publicaciones y mensajes con IA", "Finanzas con filtros por período"],
   },
   {
     key: "business",
