@@ -127,9 +127,10 @@ function Landing() {
         <h2 className="text-center text-2xl font-bold sm:text-3xl">Planes</h2>
         <div className="mt-10 grid gap-4 md:grid-cols-3">
           {[
-            { name: "Gratis", desc: "Para propietarios pequeños.", items: ["Hasta 2 propiedades", "Reservas y pagos", "Asistente IA básico"] },
-            { name: "Pro", desc: "Para propietarios con varias propiedades.", items: ["Hasta 10 propiedades", "Oportunidades y campañas", "Publicaciones ilimitadas"] },
-            { name: "Business", desc: "Para administradores profesionales.", items: ["Propiedades ilimitadas", "Finanzas avanzadas", "Soporte prioritario"] },
+            { name: "Gratis · $0", desc: "Para propietarios pequeños.", items: ["Hasta 2 propiedades", "Reservas y pagos", "Asistente IA básico"] },
+            { name: "Pro · $14.900 / mes", desc: "Para propietarios con varias propiedades.", items: ["Hasta 10 propiedades", "Oportunidades y campañas", "Publicaciones ilimitadas"] },
+            { name: "Business · $29.900 / mes", desc: "Para administradores profesionales.", items: ["Propiedades ilimitadas", "Finanzas avanzadas", "Soporte prioritario"] },
+
           ].map((plan, i) => (
             <div
               key={plan.name}
