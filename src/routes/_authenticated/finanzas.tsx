@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useExpenses, usePayments, useProperties, useReservations, useSave } from "@/lib/data";
-import { balanceFor } from "@/lib/business";
+import { EXPENSE_CATEGORIES, getFinanzas } from "@/lib/finance";
 import { fmtDate, money, toISODate } from "@/lib/format";
+
 
 export const Route = createFileRoute("/_authenticated/finanzas")({
   head: () => ({
@@ -25,7 +26,8 @@ export const Route = createFileRoute("/_authenticated/finanzas")({
 
 const SELECT_CLASS =
   "h-11 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
-const CATEGORIES = ["limpieza", "mantenimiento", "servicios", "impuestos", "comisiones", "insumos", "general"];
+const CATEGORIES = EXPENSE_CATEGORIES;
+
 
 function FinancePage() {
   const { data: payments = [] } = usePayments();
@@ -43,11 +45,12 @@ function FinancePage() {
   }));
   const [form, setForm] = useState({
     amount: "",
-    category: "general",
+    category: "limpieza",
     description: "",
     property_id: "",
     spent_at: toISODate(new Date()),
   });
+
 
   const period = useMemo(() => {
     if (range === "mes") {
@@ -63,19 +66,33 @@ function FinancePage() {
 
   const monthPayments = payments.filter((p) => inRange(p.paid_at));
   const monthExpenses = expenses.filter((e) => inRange(e.spent_at));
-  const income = monthPayments.reduce((s, p) => s + Number(p.amount), 0);
-  const outcome = monthExpenses.reduce((s, e) => s + Number(e.amount), 0);
-  const pending = reservations.reduce((s, r) => s + Math.max(0, balanceFor(r, payments).pending), 0);
 
+  const fin = useMemo(
+    () =>
+      getFinanzas({
+        desde: period.from,
+        hasta: period.to,
+        reservations,
+        payments,
+        expenses,
+      }),
+    [period, reservations, payments, expenses],
+  );
 
   const byProperty = useMemo(() => {
     return properties.map((prop) => {
-      const resIds = reservations.filter((r) => r.property_id === prop.id).map((r) => r.id);
-      const inc = monthPayments.filter((p) => resIds.includes(p.reservation_id)).reduce((s, p) => s + Number(p.amount), 0);
-      const out = monthExpenses.filter((e) => e.property_id === prop.id).reduce((s, e) => s + Number(e.amount), 0);
-      return { prop, inc, out, net: inc - out };
+      const f = getFinanzas({
+        desde: period.from,
+        hasta: period.to,
+        propiedadId: prop.id,
+        reservations,
+        payments,
+        expenses,
+      });
+      return { prop, inc: f.cobrado, out: f.gastos, net: f.resultadoNeto };
     });
-  }, [properties, reservations, monthPayments, monthExpenses]);
+  }, [properties, period, reservations, payments, expenses]);
+
 
   async function addExpense(e: React.FormEvent) {
     e.preventDefault();
