@@ -138,6 +138,21 @@ export async function buildSnapshot(supabase: DB) {
 }
 
 
+export const TONE_GUIDE: Record<string, string> = {
+  profesional:
+    "Tono profesional: formal, claro y sobrio. Usá 'usted' o neutro, sin lunfardo, sin jerga juvenil y con como máximo un emoji.",
+  cercano:
+    "Tono cercano: cordial y amable, voseo rioplatense natural, sin exagerar ni usar lunfardo forzado. Emojis con moderación.",
+  juvenil:
+    "Tono juvenil: dinámico y desestructurado, voseo, frases cortas y emojis. Nunca vulgar.",
+};
+
+export async function getTone(supabase: DB) {
+  const { data } = await supabase.from("profiles").select("tone").maybeSingle();
+  const tone = (data as any)?.tone as string | undefined;
+  return TONE_GUIDE[tone ?? "cercano"] ?? TONE_GUIDE["cercano"]!;
+}
+
 export async function callGateway(messages: { role: string; content: string }[]) {
   const key = process.env["LOVABLE_API_KEY"];
   if (!key) throw new Error("Falta la configuración de IA.");

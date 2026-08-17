@@ -15,7 +15,11 @@ import {
   useProperties,
   useReservations,
   useSave,
+  usePhotos,
 } from "@/lib/data";
+import { useSignedPhotoUrls } from "@/lib/photos";
+import { Markdown, TextSkeleton } from "@/components/Markdown";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { detectOpportunities, type Opportunity } from "@/lib/business";
 import { generateMessage, generatePublication } from "@/lib/aluvia.functions";
 
@@ -37,6 +41,8 @@ const SELECT_CLASS =
 function CampaignDialog({ opp, onClose }: { opp: Opportunity; onClose: () => void }) {
   const pub = useServerFn(generatePublication);
   const msg = useServerFn(generateMessage);
+  const { data: photos = [] } = usePhotos();
+  const { data: guests = [] } = useGuests();
   const savePublication = useSave("publications", ["publications"]);
   const saveMessage = useSave("messages", ["messages"]);
   const [mode, setMode] = useState<"publicacion" | "mensaje">(
@@ -47,6 +53,12 @@ function CampaignDialog({ opp, onClose }: { opp: Opportunity; onClose: () => voi
   const [extra, setExtra] = useState(opp.recommendation);
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const propertyPhotos = photos.filter((ph) => ph.property_id === opp.propertyId);
+  const mainPhoto = propertyPhotos.find((ph) => ph.is_primary) ?? propertyPhotos[0];
+  const { data: photoUrls = {} } = useSignedPhotoUrls(mainPhoto ? [mainPhoto.storage_path] : []);
+  const mainPhotoUrl = mainPhoto ? photoUrls[mainPhoto.storage_path] : undefined;
+  const guestPhone = guests.find((g) => g.id === opp.guestId)?.phone;
 
   async function run() {
     setLoading(true);
@@ -143,10 +155,24 @@ function CampaignDialog({ opp, onClose }: { opp: Opportunity; onClose: () => voi
             <Sparkles className="size-4" /> {loading ? "Generando..." : "Generar con IA"}
           </Button>
 
+          {loading && (
+            <div className="bg-muted rounded-xl p-4">
+              <TextSkeleton lines={6} />
+            </div>
+          )}
+
           {result && (
             <div className="space-y-3">
+              <div className="overflow-hidden rounded-2xl border">
+                {mode === "publicacion" && mainPhotoUrl && (
+                  <img src={mainPhotoUrl} alt="Foto de la propiedad" className="aspect-square w-full object-cover" loading="lazy" />
+                )}
+                <div className="bg-card p-3 text-sm">
+                  <Markdown content={result} />
+                </div>
+              </div>
               <Textarea rows={10} value={result} onChange={(e) => setResult(e.target.value)} />
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid gap-2 sm:grid-cols-3">
                 <Button
                   variant="outline"
                   className="h-11"
@@ -157,6 +183,7 @@ function CampaignDialog({ opp, onClose }: { opp: Opportunity; onClose: () => voi
                 >
                   <Copy className="size-4" /> Copiar
                 </Button>
+                <WhatsAppButton phone={guestPhone} text={result} />
                 <Button className="h-11" onClick={save}>
                   Guardar
                 </Button>

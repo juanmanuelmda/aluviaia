@@ -144,6 +144,53 @@ export type Database = {
         }
         Relationships: []
       }
+      invoices: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          date: string
+          id: string
+          mp_payment_id: string | null
+          plan: string
+          status: string
+          subscription_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          date?: string
+          id?: string
+          mp_payment_id?: string | null
+          plan?: string
+          status?: string
+          subscription_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          date?: string
+          id?: string
+          mp_payment_id?: string | null
+          plan?: string
+          status?: string
+          subscription_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           channel: string
@@ -313,6 +360,7 @@ export type Database = {
           last_name: string
           plan: string
           timezone: string
+          tone: string
           updated_at: string
         }
         Insert: {
@@ -324,6 +372,7 @@ export type Database = {
           last_name?: string
           plan?: string
           timezone?: string
+          tone?: string
           updated_at?: string
         }
         Update: {
@@ -335,6 +384,7 @@ export type Database = {
           last_name?: string
           plan?: string
           timezone?: string
+          tone?: string
           updated_at?: string
         }
         Relationships: []
@@ -564,10 +614,16 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          cancel_at_period_end: boolean
           created_at: string
+          current_period_end: string | null
           id: string
+          moneda: string
+          mp_payer_id: string | null
+          mp_preapproval_id: string | null
           payment_status: string
           plan: string
+          precio_mensual: number
           renews_at: string | null
           started_at: string
           status: string
@@ -575,10 +631,16 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          cancel_at_period_end?: boolean
           created_at?: string
+          current_period_end?: string | null
           id?: string
+          moneda?: string
+          mp_payer_id?: string | null
+          mp_preapproval_id?: string | null
           payment_status?: string
           plan?: string
+          precio_mensual?: number
           renews_at?: string | null
           started_at?: string
           status?: string
@@ -586,10 +648,16 @@ export type Database = {
           user_id: string
         }
         Update: {
+          cancel_at_period_end?: boolean
           created_at?: string
+          current_period_end?: string | null
           id?: string
+          moneda?: string
+          mp_payer_id?: string | null
+          mp_preapproval_id?: string | null
           payment_status?: string
           plan?: string
+          precio_mensual?: number
           renews_at?: string | null
           started_at?: string
           status?: string

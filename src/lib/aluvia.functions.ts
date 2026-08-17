@@ -14,12 +14,14 @@ export const askAluvia = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => askSchema.parse(d))
   .handler(async ({ data, context }) => {
-    const { buildSnapshot, callGateway } = await import("./ai.server");
-    const snapshot = await buildSnapshot(context.supabase);
+    const { buildSnapshot, callGateway, getTone } = await import("./ai.server");
+    const [snapshot, tone] = await Promise.all([buildSnapshot(context.supabase), getTone(context.supabase)]);
     const system = `Sos Aluvia AI, el asistente del negocio de alquileres temporarios del usuario.
 Respondés en español rioplatense, claro y breve, con montos en pesos argentinos.
 REGLA CRÍTICA: usá exclusivamente los datos JSON entregados. Está prohibido inventar propiedades, reservas, precios, demanda, ocupación o estadísticas.
 Si los datos no alcanzan para responder con precisión, respondé exactamente: "No tengo suficiente información para responder con precisión." y explicá qué dato falta cargar.
+FORMATO: respondé en texto plano o markdown simple (**negrita** y listas con "-"). Nunca uses tablas ni encabezados.
+${tone}
 Nunca ejecutás acciones: si el usuario pide cancelar, modificar o eliminar algo, identificá el registro con los datos reales y pedí confirmación explícita indicando dónde puede hacerlo.
 DATOS DEL NEGOCIO:
 ${JSON.stringify(snapshot)}`;
@@ -42,8 +44,8 @@ export const generatePublication = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => publicationSchema.parse(d))
   .handler(async ({ data, context }) => {
-    const { buildSnapshot, callGateway } = await import("./ai.server");
-    const snapshot = await buildSnapshot(context.supabase);
+    const { buildSnapshot, callGateway, getTone } = await import("./ai.server");
+    const [snapshot, tone] = await Promise.all([buildSnapshot(context.supabase), getTone(context.supabase)]);
     const property = snapshot.propiedades.find((p) => p.id === data.propertyId);
     if (!property) throw new Error("Propiedad no encontrada");
     const formats: Record<string, string> = {
@@ -60,7 +62,8 @@ export const generatePublication = createServerFn({ method: "POST" })
         role: "system",
         content: `Sos el redactor de marketing de Aluvia AI. Escribís en español rioplatense.
 Usá SOLO los datos reales de la propiedad. No inventes servicios, precios, ubicaciones ni disponibilidad.
-Precios en pesos argentinos. Devolvé solo el texto final, listo para copiar y pegar.`,
+Precios en pesos argentinos. Devolvé solo el texto final, listo para copiar y pegar.
+${tone}`,
       },
       {
         role: "user",
@@ -84,8 +87,8 @@ export const generateMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => messageSchema.parse(d))
   .handler(async ({ data, context }) => {
-    const { buildSnapshot, callGateway } = await import("./ai.server");
-    const snapshot = await buildSnapshot(context.supabase);
+    const { buildSnapshot, callGateway, getTone } = await import("./ai.server");
+    const [snapshot, tone] = await Promise.all([buildSnapshot(context.supabase), getTone(context.supabase)]);
     const reservation = snapshot.reservas.find((r) => r.id === data.reservationId) ?? null;
     const property =
       snapshot.propiedades.find((p) => p.id === data.propertyId) ??
@@ -96,7 +99,8 @@ export const generateMessage = createServerFn({ method: "POST" })
         role: "system",
         content: `Sos el asistente de comunicación de Aluvia AI. Escribís mensajes de WhatsApp en español rioplatense: cordiales, breves, sin exagerar.
 Usá SOLO los datos reales entregados. No inventes horarios, direcciones, montos ni fechas: si un dato falta, omitilo.
-Devolvé solo el mensaje listo para enviar.`,
+Devolvé solo el mensaje listo para enviar.
+${tone}`,
       },
       {
         role: "user",

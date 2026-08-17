@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Send, Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -7,6 +7,7 @@ import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { askAluvia } from "@/lib/aluvia.functions";
+import { Markdown, TypingDots } from "@/components/Markdown";
 
 export const Route = createFileRoute("/_authenticated/asistente")({
   head: () => ({
@@ -34,6 +35,26 @@ function AssistantPage() {
   const [history, setHistory] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [typed, setTyped] = useState<string | null>(null);
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => () => { if (timer.current) clearInterval(timer.current); }, []);
+
+  /** Efecto de tipeo progresivo sobre la última respuesta. */
+  function typeOut(full: string, base: Msg[]) {
+    if (timer.current) clearInterval(timer.current);
+    let i = 0;
+    setTyped("");
+    timer.current = setInterval(() => {
+      i = Math.min(full.length, i + Math.max(2, Math.round(full.length / 90)));
+      setTyped(full.slice(0, i));
+      if (i >= full.length) {
+        if (timer.current) clearInterval(timer.current);
+        setTyped(null);
+        setHistory([...base, { role: "assistant", content: full }]);
+      }
+    }, 22);
+  }
 
   async function send(question: string) {
     if (!question.trim() || loading) return;
@@ -43,7 +64,7 @@ function AssistantPage() {
     setLoading(true);
     try {
       const r = await ask({ data: { question, history: history.slice(-10) } });
-      setHistory([...next, { role: "assistant", content: r.answer }]);
+      typeOut(r.answer, next);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "No se pudo consultar al asistente");
       setHistory(history);
@@ -84,13 +105,23 @@ function AssistantPage() {
               className={
                 m.role === "user"
                   ? "bg-primary text-primary-foreground ml-auto max-w-[85%] rounded-2xl px-4 py-3 text-sm"
-                  : "bg-card shadow-soft max-w-[95%] rounded-2xl border px-4 py-3 text-sm whitespace-pre-wrap"
+                  : "bg-card shadow-soft max-w-[95%] rounded-2xl border px-4 py-3 text-sm"
               }
             >
-              {m.content}
+              {m.role === "assistant" ? <Markdown content={m.content} /> : m.content}
             </div>
           ))}
-          {loading && <p className="text-muted-foreground text-sm">Analizando tus datos...</p>}
+          {typed !== null && (
+            <div className="bg-card shadow-soft max-w-[95%] rounded-2xl border px-4 py-3 text-sm">
+              <Markdown content={typed} />
+            </div>
+          )}
+          {loading && typed === null && (
+            <div className="bg-card shadow-soft flex max-w-[95%] items-center gap-3 rounded-2xl border px-4 py-3">
+              <TypingDots />
+              <span className="text-muted-foreground text-sm">Aluvia está leyendo tus datos...</span>
+            </div>
+          )}
         </div>
 
         <form
