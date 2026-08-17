@@ -29,7 +29,7 @@ function SettingsPage() {
   const { user } = useAuth();
   const { data: profile } = useProfile();
   const save = useSave("profiles", ["profile"]);
-  const [form, setForm] = useState({ first_name: "", last_name: "" });
+  const [form, setForm] = useState({ first_name: "", last_name: "", tone: "cercano" });
   const [ready, setReady] = useState(false);
 
   if (profile && !ready) {
@@ -37,6 +37,7 @@ function SettingsPage() {
     setForm({
       first_name: profile.first_name ?? "",
       last_name: profile.last_name ?? "",
+      tone: (profile as { tone?: string }).tone ?? "cercano",
     });
   }
 
@@ -59,6 +60,17 @@ function SettingsPage() {
             </Field>
             <Field label="Apellido">
               <Input value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} className="h-11" />
+            </Field>
+            <Field label="Tono de comunicación de la IA">
+              <select
+                className="border-input bg-background focus-visible:ring-ring h-11 w-full rounded-md border px-3 text-sm outline-none focus-visible:ring-2"
+                value={form.tone}
+                onChange={(e) => setForm({ ...form, tone: e.target.value })}
+              >
+                <option value="profesional">Profesional — formal y sobrio</option>
+                <option value="cercano">Cercano — cordial y natural</option>
+                <option value="juvenil">Juvenil — dinámico y con emojis</option>
+              </select>
             </Field>
             <Button type="submit" className="h-12 w-full" disabled={save.isPending}>
               Guardar cambios
