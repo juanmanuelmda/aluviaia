@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useGuests, useMessages, useProperties, useReservations, useSave } from "@/lib/data";
 import { generateMessage } from "@/lib/aluvia.functions";
 import { fmtDate } from "@/lib/format";
+import { Markdown, TextSkeleton } from "@/components/Markdown";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
 
 export const Route = createFileRoute("/_authenticated/mensajes")({
   head: () => ({
@@ -96,6 +98,11 @@ function MessagesPage() {
             <Button className="h-12 w-full" onClick={run} disabled={loading}>
               <Sparkles className="size-4" /> {loading ? "Generando..." : "Generar con IA"}
             </Button>
+            {loading && !result && (
+              <div className="bg-muted rounded-xl p-4">
+                <TextSkeleton lines={5} />
+              </div>
+            )}
             {result && (
               <div className="space-y-2">
                 <Textarea rows={8} value={result} onChange={(e) => setResult(e.target.value)} />
@@ -110,17 +117,7 @@ function MessagesPage() {
                   >
                     <Copy className="size-4" /> Copiar
                   </Button>
-                  {guest?.phone && (
-                    <Button asChild variant="outline" className="h-11">
-                      <a
-                        href={`https://wa.me/${guest.phone.replace(/\D/g, "")}?text=${encodeURIComponent(result)}`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Enviar por WhatsApp
-                      </a>
-                    </Button>
-                  )}
+                  <WhatsAppButton phone={guest?.phone} text={result} />
                   <Button
                     className="h-11"
                     onClick={async () => {
@@ -167,7 +164,14 @@ function MessagesPage() {
                       <Trash2 className="size-4" />
                     </Button>
                   </div>
-                  <p className="mt-2 whitespace-pre-wrap">{m.content}</p>
+                  <Markdown content={m.content} className="mt-2" />
+                  <div className="mt-2">
+                    <WhatsAppButton
+                      phone={guests.find((g) => g.id === m.guest_id)?.phone}
+                      text={m.content}
+                      className="h-9"
+                    />
+                  </div>
                 </li>
               ))}
             </ul>

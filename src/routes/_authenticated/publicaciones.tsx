@@ -7,7 +7,10 @@ import { AppShell } from "@/components/AppShell";
 import { Empty, Field, SectionCard } from "@/components/common";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useProperties, usePublications, useSave } from "@/lib/data";
+import { useProperties, usePhotos, usePublications, useSave } from "@/lib/data";
+import { useSignedPhotoUrls } from "@/lib/photos";
+import { Markdown, TextSkeleton } from "@/components/Markdown";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { generatePublication } from "@/lib/aluvia.functions";
 import { fmtDate } from "@/lib/format";
 
@@ -29,6 +32,7 @@ const SELECT_CLASS =
 function PublicationsPage() {
   const { data: properties = [] } = useProperties();
   const { data: publications = [] } = usePublications();
+  const { data: photos = [] } = usePhotos();
   const save = useSave("publications", ["publications"]);
   const gen = useServerFn(generatePublication);
   const [propertyId, setPropertyId] = useState("");
@@ -39,6 +43,11 @@ function PublicationsPage() {
   const [loading, setLoading] = useState(false);
 
   const activeProperty = propertyId || properties[0]?.id || "";
+  const propertyPhotos = photos.filter((ph) => ph.property_id === activeProperty);
+  const mainPhoto = propertyPhotos.find((ph) => ph.is_primary) ?? propertyPhotos[0];
+  const { data: photoUrls = {} } = useSignedPhotoUrls(mainPhoto ? [mainPhoto.storage_path] : []);
+  const mainPhotoUrl = mainPhoto ? photoUrls[mainPhoto.storage_path] : undefined;
+  const propertyName = properties.find((p) => p.id === activeProperty)?.name ?? "";
 
   async function run() {
     if (!activeProperty) {
@@ -93,10 +102,35 @@ function PublicationsPage() {
             <Button className="h-12 w-full" onClick={run} disabled={loading}>
               <Sparkles className="size-4" /> {loading ? "Generando..." : "Generar con IA"}
             </Button>
+            {loading && !result && (
+              <div className="bg-muted rounded-xl p-4">
+                <TextSkeleton lines={6} />
+              </div>
+            )}
             {result && (
               <div className="space-y-2">
+                <div className="overflow-hidden rounded-2xl border">
+                  {mainPhotoUrl ? (
+                    <img
+                      src={mainPhotoUrl}
+                      alt={`Foto principal de ${propertyName}`}
+                      className="aspect-square w-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="bg-muted text-muted-foreground flex aspect-square w-full items-center justify-center px-6 text-center text-xs">
+                      Subí una foto a la propiedad para adjuntarla a la publicación
+                    </div>
+                  )}
+                  <div className="bg-card p-3 text-sm">
+                    <p className="text-muted-foreground mb-1 text-xs font-semibold capitalize">
+                      {platform} · {propertyName}
+                    </p>
+                    <Markdown content={result} />
+                  </div>
+                </div>
                 <Textarea rows={10} value={result} onChange={(e) => setResult(e.target.value)} />
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid gap-2 sm:grid-cols-3">
                   <Button
                     variant="outline"
                     className="h-11"
@@ -107,6 +141,7 @@ function PublicationsPage() {
                   >
                     <Copy className="size-4" /> Copiar
                   </Button>
+                  <WhatsAppButton text={result} />
                   <Button
                     className="h-11"
                     onClick={async () => {
@@ -160,7 +195,10 @@ function PublicationsPage() {
                       </Button>
                     </div>
                   </div>
-                  <p className="mt-2 whitespace-pre-wrap">{p.content}</p>
+                  <Markdown content={p.content} className="mt-2" />
+                  <div className="mt-2">
+                    <WhatsAppButton text={p.content} className="h-9" />
+                  </div>
                 </li>
               ))}
             </ul>
