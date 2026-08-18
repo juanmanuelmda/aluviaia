@@ -1,9 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { buildDemoScenario } from "./demo.data";
+import { DEMO_PHOTOS } from "./demo.photos";
 
 // Cliente laxo: las tablas se recorren por nombre.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Db = SupabaseClient<any, any, any>;
+
+const PHOTO_BUCKET = "property-photos";
 
 const DEMO_TABLES = [
   "payments",
@@ -12,6 +15,7 @@ const DEMO_TABLES = [
   "reservations",
   "calendar_blocks",
   "expenses",
+  "property_photos",
   "guests",
   "properties",
   "notifications",
@@ -33,6 +37,15 @@ export async function countDemo(supabase: Db, userId: string) {
 }
 
 export async function removeDemo(supabase: Db, userId: string) {
+  // Primero los archivos del storage, después las filas.
+  const { data: photos } = await (supabase as any)
+    .from("property_photos")
+    .select("storage_path")
+    .eq("user_id", userId)
+    .eq("is_demo", true);
+  const paths = ((photos ?? []) as { storage_path: string }[]).map((p) => p.storage_path);
+  if (paths.length > 0) await supabase.storage.from(PHOTO_BUCKET).remove(paths);
+
   for (const t of DEMO_TABLES) {
     const { error } = await (supabase as any)
       .from(t)
@@ -42,6 +55,35 @@ export async function removeDemo(supabase: Db, userId: string) {
     if (error) throw new Error(`No se pudieron eliminar los datos demo de ${t}: ${error.message}`);
   }
   return { removed: true };
+}
+
+async function uploadDemoPhotos(
+  supabase: Db,
+  userId: string,
+  propertyKey: string,
+  propertyId: string,
+) {
+  const scenes = DEMO_PHOTOS[propertyKey] ?? [];
+  const rows: Record<string, unknown>[] = [];
+  for (let i = 0; i < scenes.length; i++) {
+    const path = `${userId}/${propertyId}/demo-${i + 1}.svg`;
+    const { error } = await supabase.storage
+      .from(PHOTO_BUCKET)
+      .upload(path, new Blob([scenes[i]!.svg], { type: "image/svg+xml" }), {
+        contentType: "image/svg+xml",
+        upsert: true,
+      });
+    if (error) continue; // si falla una foto, el resto del escenario sigue
+    rows.push({
+      user_id: userId,
+      is_demo: true,
+      property_id: propertyId,
+      storage_path: path,
+      position: i,
+      is_primary: i === 0,
+    });
+  }
+  if (rows.length > 0) await insertMany(supabase, "property_photos", rows);
 }
 
 async function insertMany(supabase: Db, table: string, rows: Record<string, unknown>[]) {
@@ -61,6 +103,10 @@ export async function createDemo(supabase: Db, userId: string) {
     s.properties.map(({ key: _key, ...p }) => ({ ...base, ...p, active: true })),
   );
   const propMap = new Map(s.properties.map((p, i) => [p.key, propertyIds[i]!.id]));
+
+  for (const [key, id] of propMap) {
+    await uploadDemoPhotos(supabase, userId, key, id);
+  }
 
   const guestIds = await insertMany(
     supabase,

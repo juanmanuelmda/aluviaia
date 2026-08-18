@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { NotificationsBell } from "@/components/NotificationsBell";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useDemoMode } from "@/lib/demo";
@@ -165,12 +166,15 @@ export function AppShell({
           >
             <Menu className="size-5" />
           </button>
-          <h1 className="flex-1 truncate text-lg font-bold">{title}</h1>
+          <h1 className="line-clamp-2 flex-1 text-base leading-tight font-bold sm:text-lg">
+            {title}
+          </h1>
           {demoMode && (
-            <span className="border-border text-muted-foreground hidden rounded-full border px-2.5 py-1 text-[10px] font-semibold tracking-wide sm:inline">
+            <span className="bg-accent-soft text-accent-foreground rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-wide">
               MODO DEMO
             </span>
           )}
+          <NotificationsBell />
           {action}
         </header>
         <main className="mx-auto w-full max-w-6xl px-4 pt-5 pb-28 lg:pb-10">{children}</main>

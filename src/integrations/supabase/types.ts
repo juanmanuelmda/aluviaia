@@ -474,6 +474,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_demo: boolean
           is_primary: boolean
           position: number
           property_id: string
@@ -483,6 +484,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_demo?: boolean
           is_primary?: boolean
           position?: number
           property_id: string
@@ -492,6 +494,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_demo?: boolean
           is_primary?: boolean
           position?: number
           property_id?: string
