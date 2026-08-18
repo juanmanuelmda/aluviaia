@@ -1,9 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { buildDemoScenario } from "./demo.data";
+import { DEMO_PHOTOS } from "./demo.photos";
 
 // Cliente laxo: las tablas se recorren por nombre.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Db = SupabaseClient<any, any, any>;
+
+const PHOTO_BUCKET = "property-photos";
 
 const DEMO_TABLES = [
   "payments",
@@ -12,6 +15,7 @@ const DEMO_TABLES = [
   "reservations",
   "calendar_blocks",
   "expenses",
+  "property_photos",
   "guests",
   "properties",
   "notifications",
