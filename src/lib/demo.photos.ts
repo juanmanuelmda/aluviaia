@@ -96,7 +96,7 @@ function cabana(): Scene[] {
     .map((_, i) => {
       const x = 40 + i * 88;
       const h = 240 + ((i * 61) % 180);
-      return `<polygon points="${x},${600} ${x + 44},${600 - h} ${x + 88},600" fill="${i % 2 ? "#2F5C3A" : "#27四".replace("四", "4E32")}"/>`;
+      return `<polygon points="${x},${600} ${x + 44},${600 - h} ${x + 88},600" fill="${i % 2 ? "#2F5C3A" : "#274E32"}"/>`;
     })
     .join("")}
   <rect x="420" y="420" width="380" height="180" fill="#8A5A34"/>
