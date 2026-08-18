@@ -104,6 +104,10 @@ export async function createDemo(supabase: Db, userId: string) {
   );
   const propMap = new Map(s.properties.map((p, i) => [p.key, propertyIds[i]!.id]));
 
+  for (const [key, id] of propMap) {
+    await uploadDemoPhotos(supabase, userId, key, id);
+  }
+
   const guestIds = await insertMany(
     supabase,
     "guests",
