@@ -8,6 +8,7 @@ import { ReservationForm } from "./reservas.index";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { AppSelect } from "@/components/AppSelect";
 import { useBlocks, useGuests, useProperties, useReservations, useSave } from "@/lib/data";
 import { ACTIVE_STATUSES } from "@/lib/business";
 import { addDays, fmtDate, toISODate } from "@/lib/format";
@@ -24,8 +25,6 @@ export const Route = createFileRoute("/_authenticated/calendario")({
   component: CalendarPage,
 });
 
-const SELECT_CLASS =
-  "h-11 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
 const DAYS = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"];
 const PROPERTY_TONES = ["bg-primary", "bg-accent", "bg-warning", "bg-success", "bg-destructive"];
 
@@ -45,6 +44,7 @@ function CalendarPage() {
   const [resOpen, setResOpen] = useState(false);
   const [blockOpen, setBlockOpen] = useState(false);
   const [blockEnd, setBlockEnd] = useState("");
+  const [blockReason, setBlockReason] = useState("mantenimiento");
 
   const allMode = propertyId === "all";
   const activeProperty = allMode ? (properties[0]?.id ?? "") : propertyId;
@@ -89,7 +89,7 @@ function CalendarPage() {
     }
     try {
       await saveBlock.mutateAsync({
-        values: { property_id: activeProperty, start_date: selectedDay, end_date: end, reason: "personal", notes: "" },
+        values: { property_id: activeProperty, start_date: selectedDay, end_date: end, reason: blockReason, notes: "" },
       });
       toast.success("Fechas bloqueadas");
       setBlockOpen(false);
@@ -120,14 +120,15 @@ function CalendarPage() {
         <Empty text="Cargá una propiedad para ver su calendario." />
       ) : (
         <div className="space-y-4">
-          <select className={SELECT_CLASS} value={propertyId} onChange={(e) => setPropertyId(e.target.value)}>
-            <option value="all">Todas las propiedades</option>
-            {properties.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
+          <AppSelect
+            ariaLabel="Propiedad"
+            value={propertyId}
+            onValueChange={setPropertyId}
+            options={[
+              { value: "all", label: "Todas las propiedades" },
+              ...properties.map((p) => ({ value: p.id, label: p.name })),
+            ]}
+          />
 
           <SectionCard
             title={monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1)}
@@ -173,13 +174,18 @@ function CalendarPage() {
                               ? "bg-muted-foreground/25"
                               : "bg-success-soft";
                           return (
-                            <div
+                            <button
                               key={`${p.id}${day}`}
+                              type="button"
                               title={`${p.name} · ${fmtDate(day)}`}
+                              onClick={() => {
+                                setPropertyId(p.id);
+                                setSelectedDay(day);
+                              }}
                               className={`h-6 rounded text-center text-[10px] leading-6 ${tone} ${day === toISODate(new Date()) ? "ring-primary ring-2" : ""}`}
                             >
                               {Number(day.slice(-2))}
-                            </div>
+                            </button>
                           );
                         })}
                       </div>
@@ -288,6 +294,19 @@ function CalendarPage() {
               </Field>
               <Field label="Hasta (exclusivo)">
                 <Input type="date" value={blockEnd} onChange={(e) => setBlockEnd(e.target.value)} className="h-11" />
+              </Field>
+              <Field label="Motivo">
+                <AppSelect
+                  ariaLabel="Motivo del bloqueo"
+                  value={blockReason}
+                  onValueChange={setBlockReason}
+                  options={[
+                    { value: "mantenimiento", label: "Mantenimiento" },
+                    { value: "personal", label: "Uso personal" },
+                    { value: "limpieza", label: "Limpieza profunda" },
+                    { value: "otro", label: "Otro motivo" },
+                  ]}
+                />
               </Field>
               <Button type="submit" className="h-11 w-full">
                 Confirmar bloqueo
